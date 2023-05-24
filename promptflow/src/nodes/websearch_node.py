@@ -4,7 +4,7 @@ Nodes for querying the web.
 
 from abc import ABC
 import os
-import customtkinter
+from PyQt6.QtWidgets import QTextEdit
 from typing import Any
 from promptflow.src.nodes.node_base import NodeBase
 from serpapi import GoogleSearch
@@ -22,7 +22,7 @@ class SerpApiNode(WebSearchNode):
     """
 
     def run_subclass(
-        self, before_result: Any, state, console: customtkinter.CTkTextbox
+        self, before_result: Any, state, console: QTextEdit
     ) -> str:
         searchParams = {
             "engine": "google",

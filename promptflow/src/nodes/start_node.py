@@ -2,9 +2,10 @@
 Special node that prompts the user for input
 Also signals the start of the flowchart
 """
-import customtkinter
 from typing import TYPE_CHECKING, Any
 import uuid
+from PyQt6.QtWidgets import QTextEdit, QMainWindow
+from PyQt6.QtGui import QPainter
 from promptflow.src.nodes.node_base import NodeBase
 from promptflow.src.themes import monokai
 
@@ -25,6 +26,7 @@ class StartNode(NodeBase):
         center_x: float,
         center_y: float,
         label: str,
+        root: QMainWindow,
         **kwargs,
     ):
         # make sure there is only one start node
@@ -32,7 +34,7 @@ class StartNode(NodeBase):
             if isinstance(node, StartNode):
                 raise ValueError("Only one start node is allowed")
 
-        super().__init__(flowchart, center_x, center_y, label, **kwargs)
+        super().__init__(flowchart, center_x, center_y, label, root, **kwargs)
 
     @staticmethod
     def deserialize(flowchart: "Flowchart", data: dict):
@@ -41,22 +43,22 @@ class StartNode(NodeBase):
             data["center_x"],
             data["center_y"],
             data["label"],
+            root=flowchart.root,
             id=data.get("id", str(uuid.uuid4())),
         )
 
     def run_subclass(
-        self, before_result: Any, state, console: customtkinter.CTkTextbox
+        self, before_result: Any, state, console: QTextEdit
     ) -> str:
         return ""
 
     def draw_shape(self, x: int, y: int):
-        return self.canvas.create_oval(
+        painter = QPainter(self.canvas)
+        return painter.drawEllipse(
             x - self.size_px,
             y - self.size_px,
             x + self.size_px,
             y + self.size_px,
-            fill=self.node_color,
-            outline="black",
         )
 
 
@@ -73,6 +75,7 @@ class InitNode(NodeBase):
         center_x: float,
         center_y: float,
         label: str,
+        root: QMainWindow,
         **kwargs,
     ):
         # make sure there is only one init node
@@ -80,11 +83,11 @@ class InitNode(NodeBase):
             if isinstance(node, InitNode):
                 raise ValueError("Only one init node is allowed")
 
-        super().__init__(flowchart, center_x, center_y, label, **kwargs)
+        super().__init__(flowchart, center_x, center_y, label, root, **kwargs)
         self.run_once = False
 
     def run_subclass(
-        self, before_result: Any, state, console: customtkinter.CTkTextbox
+        self, before_result: Any, state, console: QTextEdit
     ) -> str:
         if not self.run_once:
             self.run_once = True
@@ -93,11 +96,10 @@ class InitNode(NodeBase):
             return None
 
     def draw_shape(self, x: int, y: int):
-        return self.canvas.create_oval(
+        painter = QPainter(self.canvas)
+        return painter.drawEllipse(
             x - self.size_px,
             y - self.size_px,
             x + self.size_px,
             y + self.size_px,
-            fill=self.node_color,
-            outline="black",
         )

@@ -10,9 +10,9 @@ import io
 from typing import Any
 import torch
 from transformers import AutoProcessor, AutoModelForCausalLM
+from PyQt6.QtWidgets import QTextEdit
 
 
-import customtkinter
 from promptflow.src.dialogues.image_inspector import ImageInspector
 from promptflow.src.dialogues.node_options import NodeOptions
 from promptflow.src.nodes.node_base import NodeBase
@@ -59,7 +59,7 @@ class OpenImageFile(ImageNode):
         self.filename = options_popup.result["filename"]
 
     def run_subclass(
-        self, before_result: Any, state, console: customtkinter.CTkTextbox
+        self, before_result: Any, state, console: QTextEdit
     ) -> str:
         # convert tkphotoimage to PIL image
         pil_image = Image.open(self.filename)
@@ -101,7 +101,7 @@ class JSONImageFile(ImageNode):
         self.filename_key = result["filename_key"]
 
     def run_subclass(
-        self, before_result: Any, state, console: customtkinter.CTkTextbox
+        self, before_result: Any, state, console: QTextEdit
     ) -> str:
         try:
             data = json.loads(state.result)
@@ -131,7 +131,7 @@ class DallENode(ImageNode):
     image = None
 
     def run_subclass(
-        self, before_result: Any, state, console: customtkinter.CTkTextbox
+        self, before_result: Any, state, console: QTextEdit
     ) -> str:
         response = openai.Image.create(
             prompt=state.result,
@@ -180,7 +180,7 @@ class CaptionNode(ImageNode):
     max_length = 50
 
     def run_subclass(
-        self, before_result: Any, state, console: customtkinter.CTkTextbox
+        self, before_result: Any, state, console: QTextEdit
     ) -> str:
         checkpoint = "microsoft/git-base"
         processor = AutoProcessor.from_pretrained(checkpoint)
@@ -241,7 +241,7 @@ class SaveImageNode(ImageNode):
         self.filename = options_popup.result["filename"]
 
     def run_subclass(
-        self, before_result: Any, state, console: customtkinter.CTkTextbox
+        self, before_result: Any, state, console: QTextEdit
     ) -> str:
         # convert tkphotoimage to PIL image
         pil_image = ImageTk.getimage(state.data)

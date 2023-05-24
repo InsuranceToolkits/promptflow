@@ -3,7 +3,7 @@ Nodes that get run time input from the user
 """
 import json
 from typing import Any, Optional
-import customtkinter
+from PyQt6.QtWidgets import QTextEdit
 from promptflow.src.dialogues.multi_file import MultiFileInput
 from promptflow.src.dialogues.node_options import NodeOptions
 
@@ -53,7 +53,7 @@ class FileInput(NodeBase):
         self.filename = self.options_popup.result["filename"]
 
     def run_subclass(
-        self, before_result: Any, state, console: customtkinter.CTkTextbox
+        self, before_result: Any, state, console: QTextEdit
     ) -> str:
         with open(self.filename, "r", encoding="utf-8") as f:
             return f.read()
@@ -91,7 +91,7 @@ class JSONFileInput(NodeBase):
         self.key = self.options_popup.result["key"]
 
     def run_subclass(
-        self, before_result: Any, state, console: customtkinter.CTkTextbox
+        self, before_result: Any, state, console: QTextEdit
     ) -> str:
         data = json.loads(state.result)
         with open(data[self.key], "r", encoding="utf-8") as f:

@@ -2,11 +2,12 @@
 Base class for all nodes
 """
 from typing import TYPE_CHECKING, Any, Optional
-import tkinter as tk
 from abc import ABC, abstractmethod
 import logging
 import uuid
-import customtkinter
+from PyQt6.QtWidgets import QTextEdit, QMainWindow, QPushButton
+from PyQt6.QtGui import QPixmap, QAction, QPainter
+from PyQt6.QtCore import Qt
 from promptflow.src.state import State
 from promptflow.src.serializable import Serializable
 from promptflow.src.themes import monokai
@@ -31,20 +32,22 @@ class NodeBase(Serializable, ABC):
         center_x: float,
         center_y: float,
         label: str,
+        root: QMainWindow,
         **kwargs,
     ):
         self.logger = logging.getLogger(__name__)
         self.logger.info("Creating node %s", label)
         self.flowchart = flowchart
         self.id: str = kwargs.get("id") or str(uuid.uuid1())
-        self.canvas = flowchart.canvas
+        self.canvas: QPixmap = flowchart.canvas
+        self.root = root 
 
         self.item = self.draw_shape(center_x, center_y)
-        self.canvas.tag_bind(self.item, "<ButtonPress-1>", self.start_drag)
-        self.canvas.tag_bind(self.item, "<ButtonRelease-1>", self.stop_drag)
-        self.canvas.tag_bind(self.item, "<B1-Motion>", self.on_drag)
+        self.bind_canvas_events()
         # right click menu
-        self.canvas.tag_bind(self.item, "<Button-3>", self.show_menu)
+        # right_click_menu = QAction(text="Right Click Menu", parent=self.canvas)
+        # right_click_menu.triggered.connect(self.show_menu)
+        
         self._label = label
         self.input_connectors: list[Connector] = []
         self.output_connectors: list[Connector] = []
@@ -53,52 +56,63 @@ class NodeBase(Serializable, ABC):
         # create the label
         self.center_x = center_x
         self.center_y = center_y
-        self.label_item = self.canvas.create_text(
-            center_x,
-            center_y,
-            text=label,
-            fill="black",
-            width=self.size_px * 2,
-            justify="center",
+        painter = QPainter(self.canvas)
+        self.label_item = painter.drawText(
+            int(center_x),
+            int(center_y),
+            label,
         )
-        self.canvas.tag_bind(self.label_item, "<Double-Button-1>", self.edit_label)
+        # self.canvas.tag_bind(self.label_item, "<Double-Button-1>", self.edit_label)
+        # bind double click to edit label
+        double_click = QAction(text="Double Click", parent=root)
+        double_click.triggered.connect(self.edit_label)
+        root.addAction(double_click)
 
-        self.add_connector_button = customtkinter.CTkButton(
-            self.canvas,
+
+        # self.add_connector_button = QPushButton(
+        #     self.canvas,
+        #     text="+",
+        #     command=self.begin_add_connector,
+        #     width=38,
+        #     corner_radius=4,
+        #     border_width=2,
+        #     border_color="black",
+        # )
+        self.add_connector_button = QPushButton(
+            parent=self.root,
             text="+",
-            command=self.begin_add_connector,
-            width=38,
-            corner_radius=4,
-            border_width=2,
-            border_color="black",
         )
-        self.add_connector_item = self.canvas.create_window(
-            center_x + 23, center_y + 68, window=self.add_connector_button
-        )
+        # add to pixmap
 
-        self.delete_button = customtkinter.CTkButton(
-            self.canvas,
+        # self.delete_button = customtkinter.CTkButton(
+        #     self.canvas,
+        #     text="x",
+        #     command=lambda: self.delete(show_confirmation=True),
+        #     width=38,
+        #     corner_radius=4,
+        #     border_width=2,
+        #     border_color="black",
+        # )
+        # self.delete_item = self.canvas.create_window(
+        #     center_x - 23, center_y + 68, window=self.delete_button
+        # )
+        self.delete_button = QPushButton(
+            parent=self.root,
             text="x",
-            command=lambda: self.delete(show_confirmation=True),
-            width=38,
-            corner_radius=4,
-            border_width=2,
-            border_color="black",
-        )
-        self.delete_item = self.canvas.create_window(
-            center_x - 23, center_y + 68, window=self.delete_button
         )
 
         self.items = [
             self.label_item,
-            self.delete_item,
-            self.add_connector_item,
+            self.delete_button,
+            self.add_connector_button,
             self.item,
         ]
 
         self.bind_drag()
         self.bind_mouseover()
-        self.canvas.tag_bind(self.item, "<Double-Button-1>", self.edit_options)
+        # self.canvas.tag_bind(self.item, "<Double-Button-1>", self.edit_options)
+        edit_action = QAction(text="Edit", parent=root)
+        edit_action.triggered.connect(self.edit_options)
 
         self.buttons = [self.delete_button, self.add_connector_button]
 
@@ -111,6 +125,15 @@ class NodeBase(Serializable, ABC):
 
     def __hash__(self) -> int:
         return hash(self.id)
+
+    def bind_canvas_events(self):
+        """
+        Bind events to the canvas.
+        """
+        self.canvas.mousePressEvent = self.start_drag
+        self.canvas.mouseReleaseEvent = self.stop_drag
+        self.canvas.mouseMoveEvent = self.on_drag
+
 
     @property
     def connectors(self) -> list["Connector"]:
@@ -153,13 +176,17 @@ class NodeBase(Serializable, ABC):
         """
         Binds the mouseover events to all the node's items
         """
-        self.canvas.tag_bind(self.item, "<Enter>", self.on_mouseover)
-        self.canvas.tag_bind(self.item, "<Leave>", self.on_mouseleave)
+        # self.canvas.tag_bind(self.item, "<Enter>", self.on_mouseover)
+        # self.canvas.tag_bind(self.item, "<Leave>", self.on_mouseleave)
+        # for item in self.items:
+        #     self.canvas.tag_bind(item, "<Enter>", self.on_mouseover)
+        #     self.canvas.tag_bind(item, "<Leave>", self.on_mouseleave)
+        self.actions = {}
         for item in self.items:
-            self.canvas.tag_bind(item, "<Enter>", self.on_mouseover)
-            self.canvas.tag_bind(item, "<Leave>", self.on_mouseleave)
+            self.actions[item] = QAction(text="Mouseover", parent=self.root)
+            self.actions[item].triggered.connect(self.on_mouseover)
 
-    def on_mouseover(self, _: tk.Event):
+    def on_mouseover(self, _):
         """
         Darken the color of the node when the mouse is over it.
         """
@@ -174,14 +201,14 @@ class NodeBase(Serializable, ABC):
         # make cursor a hand
         self.canvas.configure(cursor="hand2")
 
-    def on_mouseleave(self, _: tk.Event):
+    def on_mouseleave(self, _):
         """
         Restore the color of the node when the mouse leaves it.
         """
         self.canvas.itemconfig(self.item, fill=self.prev_color)
         self.canvas.configure(cursor="arrow")
 
-    def edit_label(self, _: tk.Event):
+    def edit_label(self, _):
         """
         Start editing the label of the node.
         """
@@ -194,7 +221,7 @@ class NodeBase(Serializable, ABC):
         self.label_entry.bind("<FocusOut>", self.finish_edit_label)
         self.canvas.create_window(center_x, center_y, window=self.label_entry)
 
-    def finish_edit_label(self, _: tk.Event):
+    def finish_edit_label(self, _):
         """
         Called when the user is done editing the label.
         Creates a new label item and destroys the entry.
@@ -226,7 +253,7 @@ class NodeBase(Serializable, ABC):
         """
         self.flowchart.begin_add_connector(self)
 
-    def start_drag(self, event: tk.Event):
+    def start_drag(self, event):
         """
         Update the flowchart's selected node and start dragging the node by
         updating the node's x and y coordinates.
@@ -235,7 +262,7 @@ class NodeBase(Serializable, ABC):
         self.center_x = event.x
         self.center_y = event.y
 
-    def on_drag(self, event: tk.Event):
+    def on_drag(self, event):
         """
         Continuously update the node's position while dragging.
         Update all connectors to follow the node.
@@ -253,26 +280,26 @@ class NodeBase(Serializable, ABC):
         for connector in self.connectors:
             connector.update()
 
-    def stop_drag(self, _: tk.Event):
+    def stop_drag(self, _):
         """
         Required to be able to drag the node.
         """
 
     @abstractmethod
     def run_subclass(
-        self, before_result: Any, state, console: customtkinter.CTkTextbox
+        self, before_result: Any, state, console: QTextEdit
     ) -> str:
         """
         Code that will be run when the node is executed.
         """
 
-    def before(self, state: State, console: customtkinter.CTkTextbox) -> Any:
+    def before(self, state: State, console: QTextEdit) -> Any:
         """
         Blocking method called before main node execution.
         """
 
     def run_node(
-        self, before_result: Any, state: State, console: customtkinter.CTkTextbox
+        self, before_result: Any, state: State, console: QTextEdit
     ) -> str:
         """
         Run the node and all nodes connected to it
@@ -325,7 +352,7 @@ class NodeBase(Serializable, ABC):
         new_node = self.deserialize(self.flowchart, data)
         return new_node
 
-    def show_menu(self, event: tk.Event):
+    def show_menu(self, event):
         """
         Right-click convenience menu.
         """
@@ -361,10 +388,10 @@ class NodeBase(Serializable, ABC):
         Binds the drag events to all the node's items
         Allows behavior like dragging the node by its label
         """
+        self.actions = {}
         for item in self.items:
-            self.canvas.tag_bind(item, "<ButtonPress-1>", self.start_drag)
-            self.canvas.tag_bind(item, "<ButtonRelease-1>", self.stop_drag)
-            self.canvas.tag_bind(item, "<B1-Motion>", self.on_drag)
+            self.actions[item] = QAction(text="Drag", parent=self.root)
+            self.actions[item].triggered.connect(self.start_drag)
 
     def edit_options(self, event):
         """

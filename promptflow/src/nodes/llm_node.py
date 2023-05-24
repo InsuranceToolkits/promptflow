@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING, Any, Optional
 
 import tiktoken
-import customtkinter
+from PyQt6.QtWidgets import QTextEdit
 from promptflow.src.state import State
 
 from promptflow.src.text_data import TextData
@@ -14,7 +14,6 @@ from promptflow.src.dialogues.text_input import TextInput
 from promptflow.src.dialogues.node_options import NodeOptions
 from promptflow.src.themes import monokai
 
-import tkinter as tk
 import openai
 import anthropic
 import google.generativeai as genai
@@ -114,7 +113,7 @@ class OpenAINode(NodeBase):
         self.text_window: Optional[TextInput] = None
         self.options_popup: Optional[NodeOptions] = None
 
-    def edit_options(self, event: tk.Event):
+    def edit_options(self, event):
         """
         Create a menu to edit the prompt.
         """
@@ -201,7 +200,7 @@ class OpenAINode(NodeBase):
         return completion["choices"][0]["text"]  # type: ignore
 
     def run_subclass(
-        self, before_result: Any, state, console: customtkinter.CTkTextbox
+        self, before_result: Any, state, console: QTextEdit
     ) -> str:
         """
         Format the prompt and run the OpenAI API.
@@ -227,7 +226,7 @@ class OpenAINode(NodeBase):
             "frequency_penalty": self.frequency_penalty,
         }
 
-    def on_model_select(self, _: Optional[tk.Event]):
+    def on_model_select(self, event):
         """
         Callback for when the OpenAI model is changed.
         """
@@ -270,7 +269,7 @@ class ClaudeNode(NodeBase):
         return history
 
     def run_subclass(
-        self, before_result: Any, state, console: customtkinter.CTkTextbox
+        self, before_result: Any, state, console: QTextEdit
     ) -> str:
         """
         Format the prompt and run the Anthropics API
@@ -290,7 +289,7 @@ class ClaudeNode(NodeBase):
             "max_tokens": self.max_tokens,
         }
 
-    def edit_options(self, event: tk.Event):
+    def edit_options(self, event):
         """
         Create a menu to edit the prompt.
         """
@@ -349,7 +348,7 @@ class GoogleVertexNode(NodeBase):
         return history
 
     def run_subclass(
-        self, before_result: Any, state, console: customtkinter.CTkTextbox
+        self, before_result: Any, state, console: QTextEdit
     ) -> str:
         genai.configure(api_key=os.environ["GENAI_API_KEY"])
         response = genai.chat(
@@ -357,7 +356,7 @@ class GoogleVertexNode(NodeBase):
         )
         return response.last
 
-    def edit_options(self, event: tk.Event):
+    def edit_options(self, event):
         """
         Create a menu to edit the prompt.
         """

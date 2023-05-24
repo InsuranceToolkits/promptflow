@@ -4,7 +4,6 @@ Worlds worst code editor
 import keyword
 import re
 from typing import TYPE_CHECKING, Optional
-import tkinter as tk
 
 from promptflow.src.text_data import TextData
 from promptflow.src.dialogues.text_input import TextInput
@@ -39,11 +38,11 @@ class CodeInput(TextInput):
         self.syntax_highlighting(None)
         self.grab_set()
 
-    def on_text_modified(self, event: Optional[tk.Event]):
+    def on_text_modified(self, event):
         super().on_text_modified(event)
         self.syntax_highlighting(event)
 
-    def syntax_highlighting(self, _: Optional[tk.Event]):
+    def syntax_highlighting(self, event):
         """
         Highlights comments, strings, and Python keywords
         """

@@ -1,6 +1,6 @@
 from abc import ABC
 import logging
-import customtkinter
+from PyQt6.QtWidgets import QTextEdit
 from typing import Any, Callable, Optional, TYPE_CHECKING
 from promptflow.src.db_interface.main import (
     PGInterface,
@@ -113,7 +113,7 @@ class DBNode(NodeBase, ABC):
         )
 
     def run_subclass(
-        self, before_result: Any, state, console: customtkinter.CTkTextbox
+        self, before_result: Any, state, console: QTextEdit
     ) -> str:
         self.interface.interface.connect()
         return state.result
@@ -195,7 +195,7 @@ class SQLiteQueryNode(DBNode):
         super().__init__(*args, SQLiteInterface, **kwargs)
 
     def run_subclass(
-        self, before_result: Any, state, console: customtkinter.CTkTextbox
+        self, before_result: Any, state, console: QTextEdit
     ) -> str:
         super().run_subclass(before_result, state, console)
         select = self.interface.interface.run_query(state.result)
@@ -228,7 +228,7 @@ class PGQueryNode(DBNode):
         super().__init__(flowchart, center_x, center_y, label, PGInterface, **kwargs)
 
     def run_subclass(
-        self, before_result: Any, state, console: customtkinter.CTkTextbox
+        self, before_result: Any, state, console: QTextEdit
     ) -> str:
         super().run_subclass(before_result, state, console)
         select = self.interface.interface.run_query(state.result)
@@ -237,7 +237,7 @@ class PGQueryNode(DBNode):
 
 class PGGenerateNode(PGMLNode):
     def run_subclass(
-        self, before_result: Any, state, console: customtkinter.CTkTextbox
+        self, before_result: Any, state, console: QTextEdit
     ) -> str:
         super().run_subclass(before_result, state, console)
         gen = self.interface.interface.generate(self.model, state.result)[0][0]

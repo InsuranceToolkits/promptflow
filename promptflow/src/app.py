@@ -6,12 +6,10 @@ flowcharts.
 import json
 import logging
 import sys
-import tkinter as tk
-from tkinter import ttk
-import customtkinter
-import tkinter.filedialog
-import tkinter.scrolledtext
-import tkinter.messagebox
+from PyQt6.QtWidgets import QApplication, QLabel, QWidget, QSystemTrayIcon, QSplitter, QScrollArea, QMainWindow
+from PyQt6.QtGui import QIcon, QPixmap, QAction, QKeySequence, QShortcut
+from PyQt6.QtCore import Qt
+
 from PIL import Image, ImageTk
 import networkx as nx
 import os
@@ -87,15 +85,15 @@ class App:
     """
 
     def __init__(self, initial_state: State, options: Options):
-        self.root = customtkinter.CTk(className="PromptFlow")
+        self.app = QApplication([])
+        self.root = QMainWindow()
+        self.root.setWindowTitle("PromptFlow")
         self.loading_popup = self.show_loading_popup("Starting app...")
-        self.root.title("PromptFlow")
         self.options = options
-        customtkinter.set_appearance_mode("dark")
-
         self.initial_state = initial_state
         self.logging_fmt = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
         self.logger = logging.getLogger(__name__)
+        self.set_dark_mode()
 
         logging.basicConfig(level=logging.DEBUG, format=self.logging_fmt)
         self.logger.info("Creating app")
@@ -106,13 +104,15 @@ class App:
         # debug file path
         self.logger.info(f"ico_dir: {ico_dir}")
         png_path = os.path.join(ico_dir, "Logo_2.png")
-        png = Image.open(png_path)
-        photo = ImageTk.PhotoImage(png)
-        self.root.wm_iconphoto(False, photo)
+        photo = QIcon(png_path)
+        self.root.setWindowIcon(photo)
         # if on windows, use ico
-        if os.name == "nt":
-            ico_path = os.path.join(ico_dir, "Logo_2.ico")
-            self.root.wm_iconbitmap(default=ico_path)
+        # if os.name == "nt":
+        #     ico_path = os.path.join(ico_dir, "Logo_2.ico")
+        #     self.root.wm_iconbitmap(default=ico_path)
+
+        self.tray_icon = QSystemTrayIcon(photo, self.root)
+        self.tray_icon.show()
 
         self.command_manager = CommandManager()  # todo
 
@@ -122,397 +122,172 @@ class App:
 
         # Build the core components
 
-        self.paned_window = tk.PanedWindow(self.root, orient=tk.HORIZONTAL, sashwidth=5)
-        self.canvas = tk.Canvas(
-            self.paned_window,
-            width=options.width,
-            height=options.height,
-            background=monokai.BACKGROUND,
-        )
-        self.flowchart = Flowchart(self.canvas)
+        self.paned_window = QSplitter(parent=self.root, orientation=Qt.Orientation.Vertical)
+        self.canvas = QPixmap(options.width, options.height)
+        self.flowchart = Flowchart(self.canvas, root=self.root)
         self.cursor = FlowchartCursor(
             self.canvas, options.width / 2, options.height / 2
         )
         self.current_file = "Untitled"
 
         # scrolling text meant to simulate a console
-        self.output_console = customtkinter.CTkTextbox(
-            self.paned_window, height=8, width=400
-        )
+        self.output_console_scroll = QScrollArea(self.root)
+        self.output_console_scroll.setWidgetResizable(True)
+        self.output_console_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
+        self.output_console_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.output_console = QLabel(self.root)
+        self.output_console.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        self.output_console.setWordWrap(True)
+        self.output_console.setOpenExternalLinks(True)
+
 
         # register on close behavior
-        self.root.protocol("WM_DELETE_WINDOW", self.on_close)
+        # self.root.protocol("WM_DELETE_WINDOW", self.on_close)
+        quit = QAction("Quit", self.root)
+        quit.triggered.connect(self.on_close)
+
 
         # create the menu
-        self.menu = tk.Menu(self.canvas)
-        self.menubar = tk.Menu(self.menu, tearoff=0)
+        self.menubar = self.root.menuBar()
 
-        self.file_menu = tk.Menu(self.menubar, tearoff=0)
-        self.file_menu.add_command(label="Save Flowchart...", command=self.save_as)
-        self.file_menu.add_command(label="Load Flowchart...", command=self.load_from)
-        self.file_menu.add_command(label="Save Console...", command=self.export_console)
-        self.export_menu = tk.Menu(self.file_menu, tearoff=0)
-        self.export_menu.add_command(label="To Mermaid", command=self.export_to_mermaid)
-        self.export_menu.add_command(label="To GraphML", command=self.export_to_graphml)
-        self.export_menu.add_command(
-            label="To Postscript", command=self.export_to_postscript
-        )
-        self.file_menu.add_cascade(label="Export", menu=self.export_menu)
-        self.menubar.add_cascade(label="File", menu=self.file_menu)
+        self.file_menu = self.menubar.addMenu("&File")
+        save_flowchart = QAction("Save Flowchart", self.root)
+        save_flowchart.triggered.connect(self.save_as)
+        self.file_menu.addAction(save_flowchart)
+        load_flowchart = QAction("Load Flowchart", self.root)
+        load_flowchart.triggered.connect(self.load_from)
+        self.file_menu.addAction(load_flowchart)
+        save_console = QAction("Save Console", self.root)
+        save_console.triggered.connect(self.export_console)
+        self.file_menu.addAction(save_console)
+
+        self.export_menu = self.menubar.addMenu("&Export")
+        export_to_mermaid = QAction("To Mermaid", self.root)
+        export_to_mermaid.triggered.connect(self.export_to_mermaid)
+        self.export_menu.addAction(export_to_mermaid)
+        export_to_graphml = QAction("To GraphML", self.root)
+        export_to_graphml.triggered.connect(self.export_to_graphml)
+        self.export_menu.addAction(export_to_graphml)
+        export_to_postscript = QAction("To Postscript", self.root)
+        export_to_postscript.triggered.connect(self.export_to_postscript)
+        self.export_menu.addAction(export_to_postscript)
 
         # edit menu for common actions
-        self.edit_menu = tk.Menu(self.menubar, tearoff=0)
-        self.edit_menu.add_command(
-            label="Undo", command=self.command_manager.undo, accelerator="Ctrl+Z"
-        )
-        self.edit_menu.add_command(
-            label="Redo", command=self.command_manager.redo, accelerator="Ctrl+Y"
-        )
-        self.edit_menu.add_command(
-            label="Clear",
-            command=self.clear_flowchart,
-        )
-        self.edit_menu.add_command(
-            label="Options...",
-            command=self.edit_options,
-        )
-        self.menubar.add_cascade(label="Edit", menu=self.edit_menu)
+        self.edit_menu = self.menubar.addMenu("&Edit")
+        undo = QAction("Undo", self.root)
+        undo.triggered.connect(self.command_manager.undo)
+        self.edit_menu.addAction(undo)
+        redo = QAction("Redo", self.root)
+        redo.triggered.connect(self.command_manager.redo)
+        self.edit_menu.addAction(redo)
+        clear = QAction("Clear", self.root)
+        clear.triggered.connect(self.clear_flowchart)
+        self.edit_menu.addAction(clear)
+        options_ = QAction("Options", self.root)
+        options_.triggered.connect(self.edit_options)
+        self.edit_menu.addAction(options_)
+
 
         # create an add menu for each type of node
-        self.add_menu = tk.Menu(self.menubar, tearoff=0)
-        self.add_menu.add_command(
-            label="Start - First node in main loop",
-            command=self.create_add_node_function(StartNode, "Start"),
-        )
-        self.add_menu.add_command(
-            label="Initialize - Run this subchart once",
-            command=self.create_add_node_function(InitNode, "Initialize"),
-        )
-        self.envvars_menu = tk.Menu(self.add_menu, tearoff=0)
-        self.envvars_menu.add_command(
-            label=".env - Load environment variables from .env file",
-            command=self.create_add_node_function(EnvNode, ".env"),
-        )
-        self.envvars_menu.add_command(
-            label="Manual - Manually set environment variables",
-            command=self.create_add_node_function(ManualEnvNode, "Manual"),
-        )
-        self.add_menu.add_cascade(label="Environment Variables", menu=self.envvars_menu)
-        self.input_menu = tk.Menu(self.add_menu, tearoff=0)
-        self.input_menu.add_command(
-            label="Input - Pause for user input",
-            command=self.create_add_node_function(InputNode, "Input"),
-        )
-        self.input_menu.add_command(
-            label="Server - Listen for input on a port",
-            command=self.create_add_node_function(ServerInputNode, "Server"),
-        )
-        self.input_menu.add_command(
-            label="File - Read file from disk",
-            command=self.create_add_node_function(FileInput, "File"),
-        )
-        self.input_menu.add_command(
-            label="JSON Parsed File - Read file from disk parsed from JSON",
-            command=self.create_add_node_function(JSONFileInput, "JSON Input File"),
-        )
-        self.add_menu.add_cascade(label="Input", menu=self.input_menu)
-        self.output_menu = tk.Menu(self.add_menu, tearoff=0)
-        self.output_menu.add_command(
-            label="File - Write to file on disk",
-            command=self.create_add_node_function(FileOutput, "File"),
-        )
-        self.output_menu.add_command(
-            label="JSON Parsed File - Write to file on disk parsed from JSON",
-            command=self.create_add_node_function(JSONFileOutput, "JSON Output File"),
-        )
-        self.add_menu.add_cascade(label="Output", menu=self.output_menu)
-        self.add_menu.add_command(
-            label="Prompt - Format custom text",
-            command=self.create_add_node_function(PromptNode, "Prompt"),
-        )
-        self.add_menu.add_command(
-            label="Function - Custom Python Function",
-            command=self.create_add_node_function(FuncNode, "Function"),
-        )
-        self.llm_menu = tk.Menu(self.add_menu, tearoff=0)
+        self.add_menu = self.menubar.addMenu("&Add")
+        self.add_menu.addAction("Start - First node in main loop", self.create_add_node_function(StartNode, "Start"))
+        self.add_menu.addAction("Initialize - Run this subchart once", self.create_add_node_function(InitNode, "Initialize"))
+        self.envvars_menu = self.add_menu.addMenu("Environment Variables")
+        self.envvars_menu.addAction(".env - Load environment variables from .env file", self.create_add_node_function(EnvNode, ".env"))
+        self.envvars_menu.addAction("Manual - Manually set environment variables", self.create_add_node_function(ManualEnvNode, "Manual"))
+        self.input_menu = self.add_menu.addMenu("Input")
+        self.input_menu.addAction("Input - Pause for user input", self.create_add_node_function(InputNode, "Input"))
+        self.input_menu.addAction("Server - Listen for input on a port", self.create_add_node_function(ServerInputNode, "Server"))
+        self.input_menu.addAction("File - Read file from disk", self.create_add_node_function(FileInput, "File"))
+        self.input_menu.addAction("JSON Parsed File - Read file from disk parsed from JSON", self.create_add_node_function(JSONFileInput, "JSON Input File"))
+        self.output_menu = self.add_menu.addMenu("Output")
+        self.output_menu.addAction("File - Write to file on disk", self.create_add_node_function(FileOutput, "File"))
+        self.output_menu.addAction("JSON Parsed File - Write to file on disk parsed from JSON", self.create_add_node_function(JSONFileOutput, "JSON Output File"))
+        self.add_menu.addAction("Prompt - Format custom text", self.create_add_node_function(PromptNode, "Prompt"))
+        self.add_menu.addAction("Function - Custom Python Function", self.create_add_node_function(FuncNode, "Function"))
+        self.llm_menu = self.add_menu.addMenu("LLM")
+        self.llm_menu.addAction("OpenAI - Pass text to OpenAI model of choice", self.create_add_node_function(OpenAINode, "OpenAI"))
+        self.llm_menu.addAction("Claude - Pass text to Anthropic Claude", self.create_add_node_function(ClaudeNode, "Claude"))
+        self.llm_menu.addAction("Google - Pass text to Google LLM", self.create_add_node_function(GoogleVertexNode, "Google"))
+        self.history_menu = self.add_menu.addMenu("History")
+        self.history_menu.addAction("History - Save result to chat history", self.create_add_node_function(HistoryNode, "History"))
+        self.history_menu.addAction("Manual History - Manually set chat history", self.create_add_node_function(ManualHistoryNode, "Manual History"))
+        self.history_menu.addAction("Windowed History - Save to history with a window", self.create_add_node_function(WindowedHistoryNode, "Windowed History"))
+        self.history_menu.addAction("Dynamic Windowed History - Save to history based on last occurrence of text", self.create_add_node_function(DynamicWindowedHistoryNode, "Dynamic Windowed history"))
+        self.memory_menu = self.add_menu.addMenu("Memory")
+        self.memory_menu.addAction("Pinecone Insert - Insert data into Pinecone", self.create_add_node_function(PineconeInsertNode, "Pinecone Insert"))
+        self.memory_menu.addAction("Pinecone Query - Query data from Pinecone", self.create_add_node_function(PineconeQueryNode, "Pinecone Query"))
+        self.requests_menu = self.add_menu.addMenu("Requests")
+        self.requests_menu.addAction("HTTP - Send HTTP request", self.create_add_node_function(HttpNode, "HTTP"))
+        self.requests_menu.addAction("JSON Request - Send HTTP request to a url parsed from JSON", self.create_add_node_function(JSONRequestNode, "JSON-Parsed Request"))
+        self.requests_menu.addAction("Scrape - Scrape text from a url", self.create_add_node_function(ScrapeNode, "Scrape"))
+        self.regex_menu = self.add_menu.addMenu("Regex")
+        self.regex_menu.addAction("Regex - Match text with regex", self.create_add_node_function(RegexNode, "Regex"))
+        self.regex_menu.addAction("Tag - Extract text between tags", self.create_add_node_function(TagNode, "Tag"))
+        self.structured_data_menu = self.add_menu.addMenu("Structured Data")
+        self.structured_data_menu.addAction("JSON - Parse and validate JSON", self.create_add_node_function(JsonNode, "JSON"))
+        self.structured_data_menu.addAction("JSONerizer - Parse JSON from text", self.create_add_node_function(JsonerizerNode, "JSONerizer"))
+        self.search_nodes_menu = self.add_menu.addMenu("Search Nodes")
+        self.search_nodes_menu.addAction("SerpAPI - Search Google with SerpAPI", self.create_add_node_function(SerpApiNode, "SerpAPI"))
+        self.embedding_menu = self.add_menu.addMenu("Embedding")
+        self.embedding_menu.addAction("Embedding In - Embed result and save to hnswlib", self.create_add_node_function(EmbeddingInNode, "Embedding In"))
+        self.embedding_menu.addAction("Embedding Query - Query HNSW index", self.create_add_node_function(EmbeddingQueryNode, "Embedding Query"))
+        self.embedding_menu.addAction("Embedding Ingest - Read embeddings from file. Use with init node.", self.create_add_node_function(EmbeddingsIngestNode, "Embedding Ingest"))
+        self.db_menu = self.add_menu.addMenu("Database")
+        self.db_menu.addAction("Query - Query a SQLite database", self.create_add_node_function(SQLiteQueryNode, "SQLite Query"))
+        self.db_menu.addAction("PG Query - Query a PostgreSQL database", self.create_add_node_function(PGQueryNode, "PG Query"))
+        self.db_menu.addAction("Generate - Generate next text from PGML model", self.create_add_node_function(PGGenerateNode, "Generate"))
+        self.add_menu.addAction("Date - Insert current datetime", self.create_add_node_function(DateNode, "Date"))
+        self.add_menu.addAction("Random - Insert a random number", self.create_add_node_function(RandomNode, "Random"))
+        self.test_menu = self.add_menu.addMenu("Test")
+        self.test_menu.addAction("Logging - Print string to log", self.create_add_node_function(LoggingNode, "Logging"))
+        self.test_menu.addAction("Interpreter - Open a Python interpreter", self.create_add_node_function(InterpreterNode, "Interpreter"))
+        self.test_menu.addAction("Dummy LLM - For testing", self.create_add_node_function(DummyNode, "Dummy LLM"))
+        self.test_menu.addAction("Assert - Assert certain condition is true", self.create_add_node_function(AssertNode, "Assert"))
+        self.audio_menu = self.add_menu.addMenu("Audio")
+        self.audio_menu.addAction("Whisper Audio Input - Record audio", self.create_add_node_function(WhispersNode, "Whisper Audio Input"))
+        self.audio_menu.addAction("ElevenLabs Audio Output - Text-to-speech", self.create_add_node_function(ElevenLabsNode, "ElevenLabs Audio Output"))
+        self.image_menu = self.add_menu.addMenu("Image")
+        self.image_menu.addAction("Dall-E - Generate image from text", self.create_add_node_function(DallENode, "Dall-E"))
+        self.image_menu.addAction("Open File - Open image from file", self.create_add_node_function(OpenImageFile, "Open File"))
+        self.image_menu.addAction("JSON File - Open image from file parsed from JSON", self.create_add_node_function(JSONImageFile, "JSON File"))
+        self.image_menu.addAction("Save Image - Save image to file", self.create_add_node_function(SaveImageNode, "Save Image"))
+        self.image_menu.addAction("Caption - Caption an image", self.create_add_node_function(CaptionNode, "Caption"))
 
-        self.llm_menu.add_command(
-            label="OpenAI - Pass text to OpenAI model of choice",
-            command=self.create_add_node_function(OpenAINode, "OpenAI"),
-        )
-        self.llm_menu.add_command(
-            label="Claude - Pass text to Anthropic Claude",
-            command=self.create_add_node_function(ClaudeNode, "Claude"),
-        )
-        self.llm_menu.add_command(
-            label="Google - Pass text to Google LLM",
-            command=self.create_add_node_function(GoogleVertexNode, "Google"),
-        )
-        self.add_menu.add_cascade(label="LLM", menu=self.llm_menu)
-        self.history_menu = tk.Menu(self.add_menu, tearoff=0)
-        self.history_menu.add_command(
-            label="History - Save result to chat history",
-            command=self.create_add_node_function(HistoryNode, "History"),
-        )
-        self.history_menu.add_command(
-            label="Manual History - Manually set chat history",
-            command=self.create_add_node_function(ManualHistoryNode, "Manual History"),
-        )
-        self.history_menu.add_command(
-            label="Windowed History - Save to history with a window",
-            command=self.create_add_node_function(
-                WindowedHistoryNode, "Windowed History"
-            ),
-        )
-        self.history_menu.add_command(
-            label="Dynamic Windowed History - Save to history based on last occurrence of text",
-            command=self.create_add_node_function(
-                DynamicWindowedHistoryNode, "Dynamic Windowed history"
-            ),
-        )
-        self.add_menu.add_cascade(label="History", menu=self.history_menu)
-        self.memory_menu = tk.Menu(self.add_menu, tearoff=0)
-        self.memory_menu.add_command(
-            label="Pinecone Insert - Insert data into Pinecone",
-            command=self.create_add_node_function(
-                PineconeInsertNode, "Pinecone Insert"
-            ),
-        )
-        self.memory_menu.add_command(
-            label="Pinecone Query - Query data from Pinecone",
-            command=self.create_add_node_function(PineconeQueryNode, "Pinecone Query"),
-        )
-        self.add_menu.add_cascade(label="Memory", menu=self.memory_menu)
-        self.requests_menu = tk.Menu(self.add_menu, tearoff=0)
-        self.requests_menu.add_command(
-            label="HTTP - Send HTTP request",
-            command=self.create_add_node_function(HttpNode, "HTTP"),
-        )
-        self.requests_menu.add_command(
-            label="JSON Request - Send HTTP request to a url parsed from JSON",
-            command=self.create_add_node_function(
-                JSONRequestNode, "JSON-Parsed Request"
-            ),
-        )
-        self.requests_menu.add_command(
-            label="Scrape - Scrape text from a url",
-            command=self.create_add_node_function(ScrapeNode, "Scrape"),
-        )
-        self.add_menu.add_cascade(label="Requests", menu=self.requests_menu)
-        self.regex_menu = tk.Menu(self.add_menu, tearoff=0)
-        self.regex_menu.add_command(
-            label="Regex - Match text with regex",
-            command=self.create_add_node_function(RegexNode, "Regex"),
-        )
-        self.regex_menu.add_command(
-            label="Tag - Extract text between tags",
-            command=self.create_add_node_function(TagNode, "Tag"),
-        )
-        self.add_menu.add_cascade(label="Regex", menu=self.regex_menu)
-        self.structured_data_menu = tk.Menu(self.add_menu, tearoff=0)
-        self.structured_data_menu.add_command(
-            label="JSON - Parse and validate JSON",
-            command=self.create_add_node_function(JsonNode, "JSON"),
-        )
-        self.structured_data_menu.add_command(
-            label="JSONerizer - Parse JSON from text",
-            command=self.create_add_node_function(JsonerizerNode, "JSONerizer"),
-        )
-        self.add_menu.add_cascade(
-            label="Structured Data", menu=self.structured_data_menu
-        )
-        self.search_nodes_menu = tk.Menu(self.add_menu, tearoff=0)
-        self.search_nodes_menu.add_command(
-            label="SerpAPI - Search Google with SerpAPI",
-            command=self.create_add_node_function(SerpApiNode, "SerpAPI"),
-        )
-        self.add_menu.add_cascade(label="Search Nodes", menu=self.search_nodes_menu)
-        self.embedding_menu = tk.Menu(self.add_menu, tearoff=0)
-        self.embedding_menu.add_command(
-            label="Embedding In - Embed result and save to hnswlib",
-            command=self.create_add_node_function(EmbeddingInNode, "Embedding In"),
-        )
-        self.embedding_menu.add_command(
-            label="Embedding Query - Query HNSW index",
-            command=self.create_add_node_function(
-                EmbeddingQueryNode, "Embedding Query"
-            ),
-        )
-        self.embedding_menu.add_command(
-            label="Embedding Ingest - Read embeddings from file. Use with init node.",
-            command=self.create_add_node_function(
-                EmbeddingsIngestNode, "Embedding Ingest"
-            ),
-        )
-        self.add_menu.add_cascade(label="Embedding", menu=self.embedding_menu)
-        self.db_menu = tk.Menu(self.add_menu, tearoff=0)
-        self.db_menu.add_command(
-            label="Query - Query a SQLite database",
-            command=self.create_add_node_function(SQLiteQueryNode, "SQLite Query"),
-        )
-        self.db_menu.add_command(
-            label="PG Query - Query a PostgreSQL database",
-            command=self.create_add_node_function(PGQueryNode, "PG Query"),
-        )
-        self.db_menu.add_command(
-            label="Generate - Generate next text from PGML model",
-            command=self.create_add_node_function(PGGenerateNode, "Generate"),
-        )
-        self.add_menu.add_cascade(label="Database", menu=self.db_menu)
-        self.add_menu.add_command(
-            label="Date - Insert current datetime",
-            command=self.create_add_node_function(DateNode, "Date"),
-        )
-        self.add_menu.add_command(
-            label="Random - Insert a random number",
-            command=self.create_add_node_function(RandomNode, "Random"),
-        )
-        self.menubar.add_cascade(label="Add", menu=self.add_menu)
-        self.test_menu = tk.Menu(self.add_menu, tearoff=0)
-        self.test_menu.add_command(
-            label="Logging - Print string to log",
-            command=self.create_add_node_function(LoggingNode, "Logging"),
-        )
-        self.test_menu.add_command(
-            label="Interpreter - Open a Python interpreter",
-            command=self.create_add_node_function(InterpreterNode, "Interpreter"),
-        )
-        self.test_menu.add_command(
-            label="Dummy LLM - For testing",
-            command=self.create_add_node_function(DummyNode, "Dummy LLM"),
-        )
-        self.test_menu.add_command(
-            label="Assert - Assert certain condition is true",
-            command=self.create_add_node_function(AssertNode, "Assert"),
-        )
-        self.add_menu.add_cascade(label="Test", menu=self.test_menu)
-
-        # create audio menu
-        self.audio_menu = tk.Menu(self.add_menu, tearoff=0)
-        self.audio_menu.add_command(
-            label="Whisper Audio Input - Record audio",
-            command=self.create_add_node_function(WhispersNode, "Whisper Audio Input"),
-        )
-        self.audio_menu.add_command(
-            label="ElevenLabs Audio Output - Text-to-speech",
-            command=self.create_add_node_function(
-                ElevenLabsNode, "ElevenLabs Audio Output"
-            ),
-        )
-        self.add_menu.add_cascade(label="Audio", menu=self.audio_menu)
-        self.image_menu = tk.Menu(self.add_menu, tearoff=0)
-        self.image_menu.add_command(
-            label="Dall-E - Generate image from text",
-            command=self.create_add_node_function(DallENode, "Dall-E"),
-        )
-        self.image_menu.add_command(
-            label="Open File - Open image from file",
-            command=self.create_add_node_function(
-                OpenImageFile,
-                "Open File",
-            ),
-        )
-        self.image_menu.add_command(
-            label="JSON File - Open image from file parsed from JSON",
-            command=self.create_add_node_function(
-                JSONImageFile,
-                "JSON File",
-            ),
-        )
-        self.image_menu.add_command(
-            label="Save Image - Save image to file",
-            command=self.create_add_node_function(SaveImageNode, "Save Image"),
-        )
-        self.image_menu.add_command(
-            label="Caption - Caption an image",
-            command=self.create_add_node_function(CaptionNode, "Caption"),
-        )
-        self.add_menu.add_cascade(label="Image", menu=self.image_menu)
-
-        # Create the "Arrange" menu
-        self.arrange_menu = tk.Menu(self.menubar, tearoff=0)
-        self.arrange_menu.add_command(label="Tree Layout", command=self.arrange_tree)
-        # for some reason a for loop with lambda doesn't work here
-        self.arrange_menu.add_command(
-            label="Bipartite Layout",
-            command=lambda: self.arrange_networkx(nx.layout.bipartite_layout),
-        )
-        self.arrange_menu.add_command(
-            label="Circular Layout",
-            command=lambda: self.arrange_networkx(nx.layout.circular_layout),
-        )
-        self.arrange_menu.add_command(
-            label="Kamada Kawai Layout",
-            command=lambda: self.arrange_networkx(nx.layout.kamada_kawai_layout),
-        )
-        self.arrange_menu.add_command(
-            label="Planar Layout",
-            command=lambda: self.arrange_networkx(nx.layout.planar_layout),
-        )
-        self.arrange_menu.add_command(
-            label="Random Layout",
-            command=lambda: self.arrange_networkx(nx.layout.random_layout),
-        )
-        self.arrange_menu.add_command(
-            label="Shell Layout",
-            command=lambda: self.arrange_networkx(nx.layout.shell_layout),
-        )
-        self.arrange_menu.add_command(
-            label="Spring Layout",
-            command=lambda: self.arrange_networkx(nx.layout.spring_layout),
-        )
-        self.arrange_menu.add_command(
-            label="Spectral Layout",
-            command=lambda: self.arrange_networkx(nx.layout.spectral_layout),
-        )
-        self.arrange_menu.add_command(
-            label="Spiral Layout",
-            command=lambda: self.arrange_networkx(nx.layout.spiral_layout),
-        )
-        self.menubar.add_cascade(label="Arrange", menu=self.arrange_menu)
+        # create the "Arrange" menu
+        self.arrange_menu = self.menubar.addMenu("&Arrange")
+        self.arrange_menu.addAction("Tree Layout", self.arrange_tree)
+        self.arrange_menu.addAction("Bipartite Layout", lambda: self.arrange_networkx(nx.layout.bipartite_layout))
+        self.arrange_menu.addAction("Circular Layout", lambda: self.arrange_networkx(nx.layout.circular_layout))
+        self.arrange_menu.addAction("Kamada Kawai Layout", lambda: self.arrange_networkx(nx.layout.kamada_kawai_layout))
+        self.arrange_menu.addAction("Planar Layout", lambda: self.arrange_networkx(nx.layout.planar_layout))
+        self.arrange_menu.addAction("Random Layout", lambda: self.arrange_networkx(nx.layout.random_layout))
+        self.arrange_menu.addAction("Shell Layout", lambda: self.arrange_networkx(nx.layout.shell_layout))
+        self.arrange_menu.addAction("Spring Layout", lambda: self.arrange_networkx(nx.layout.spring_layout))
+        self.arrange_menu.addAction("Spectral Layout", lambda: self.arrange_networkx(nx.layout.spectral_layout))
+        self.arrange_menu.addAction("Spiral Layout", lambda: self.arrange_networkx(nx.layout.spiral_layout))
 
         # create a help menu
-        self.help_menu = tk.Menu(self.menubar, tearoff=0)
-        self.help_menu.add_command(label="About PromptFlow...", command=self.show_about)
-        self.menubar.add_cascade(label="Help", menu=self.help_menu)
+        self.help_menu = self.menubar.addMenu("&Help")
+        self.help_menu.addAction("About PromptFlow...", self.show_about)
 
         # create the toolbar
-        self.toolbar = customtkinter.CTkFrame(self.root)
-        self.run_button = customtkinter.CTkButton(
-            self.toolbar,
-            text="Run",
-            command=self.run_flowchart,
-            border_width=2,
-            border_color="black",
-        )
-        self.stop_button = customtkinter.CTkButton(
-            self.toolbar,
-            text="Stop",
-            command=self.stop_flowchart,
-            border_width=2,
-            border_color="black",
-        )
-        self.serialize_button = customtkinter.CTkButton(
-            self.toolbar,
-            text="Serialize",
-            command=self.serialize_flowchart,
-            border_width=2,
-            border_color="black",
-        )
-        self.screenshot_button = customtkinter.CTkButton(
-            self.toolbar,
-            text="Screenshot",
-            command=self.save_image,
-            border_width=2,
-            border_color="black",
-        )
-        self.cost_button = customtkinter.CTkButton(
-            self.toolbar,
-            text="Cost",
-            command=self.cost_flowchart,
-            border_width=2,
-            border_color="black",
-        )
+        self.toolbar = self.root.addToolBar("Toolbar")
+        self.run_button = QAction("Run", self.root)
+        self.run_button.triggered.connect(self.run_flowchart)
+        self.toolbar.addAction(self.run_button)
+        self.stop_button = QAction("Stop", self.root)
+        self.stop_button.triggered.connect(self.stop_flowchart)
+        self.toolbar.addAction(self.stop_button)
+        self.serialize_button = QAction("Serialize", self.root)
+        self.serialize_button.triggered.connect(self.serialize_flowchart)
+        self.toolbar.addAction(self.serialize_button)
+        self.screenshot_button = QAction("Screenshot", self.root)
+        self.screenshot_button.triggered.connect(self.save_image)
+        self.toolbar.addAction(self.screenshot_button)
+        self.cost_button = QAction("Cost", self.root)
+        self.cost_button.triggered.connect(self.cost_flowchart)
+        self.toolbar.addAction(self.cost_button)
 
         self.toolbar_buttons = [
             self.run_button,
@@ -522,47 +297,48 @@ class App:
             self.cost_button,
         ]
 
-        # pack the components
-        for button in self.toolbar_buttons:
-            button.pack(side=tk.LEFT, padx=2, pady=2)
-        self.toolbar.pack(side=tk.TOP, fill=tk.X)
-
-        self.paned_window.pack(fill=tk.BOTH, expand=True)
-        self.paned_window.add(self.canvas)
-        self.paned_window.add(self.output_console)
-
         # key bindings
         self._create_key_bindings()
 
         # add the menu
-        self.root.config(menu=self.menubar)
-        # wait for UI to draw
         self.root.update()
 
         self.logger.debug("App created")
         self.loading_popup.destroy()
 
     def _create_key_bindings(self):
-        self.root.bind("<Control-s>", lambda e: self.save_as())
-        self.root.bind("<Control-o>", lambda e: self.load_from())
-        self.root.bind("<F5>", lambda e: self.run_flowchart())
-        self.root.bind("<Control-r>", lambda e: self.run_flowchart())
-        self.root.bind("<Delete>", lambda e: self.delete_selected_element())
-        # self.root.bind("<BackSpace>", lambda e: self.delete_selected_element())
-        self.canvas.bind("<MouseWheel>", self.handle_zoom)  # Windows
-        self.canvas.bind("<Button-4>", self.handle_zoom)  # Linux (wheel up)
-        self.canvas.bind("<Button-5>", self.handle_zoom)  # Linux (wheel down)
-        self.canvas.bind("<4>", self.handle_zoom)  # MacOS (wheel up)
-        self.canvas.bind("<5>", self.handle_zoom)  # MacOS (wheel down)
-        self.canvas.bind("<ButtonPress-2>", self.start_pan)  # Middle mouse button press
-        self.canvas.bind("<B2-Motion>", self.pan)  # Middle mouse button drag
-        self.canvas.bind("<Button-1>", self.log_click)  # Left mouse button click
-
-    def log_click(self, event):
+        """Create the key bindings for the app"""
+        self.logger.debug("Creating key bindings")
+        ctrl_s = QShortcut(QKeySequence("Ctrl+S"), self.root)
+        ctrl_s.activated.connect(self.save_as)
+        ctrl_o = QShortcut(QKeySequence("Ctrl+O"), self.root)
+        ctrl_o.activated.connect(self.load_from)
+        f5 = QShortcut(QKeySequence("F5"), self.root)
+        f5.activated.connect(self.run_flowchart)
+        ctrl_r = QShortcut(QKeySequence("Ctrl+R"), self.root)
+        ctrl_r.activated.connect(self.run_flowchart)
+        delete = QShortcut(QKeySequence("Delete"), self.root)
+        delete.activated.connect(self.delete_selected_element)
+        mouse_wheel = QShortcut(QKeySequence("Ctrl+Wheel"), self.root)
+        mouse_wheel.activated.connect(self.handle_zoom)
+        mouse_wheel_up = QShortcut(QKeySequence("Wheel"), self.root)
+        mouse_wheel_up.activated.connect(self.handle_zoom)
+        mouse_wheel_down = QShortcut(QKeySequence("Shift+Wheel"), self.root)
+        mouse_wheel_down.activated.connect(self.handle_zoom)
+        mouse_wheel_up_mac = QShortcut(QKeySequence("4"), self.root)
+        mouse_wheel_up_mac.activated.connect(self.handle_zoom)
+        mouse_wheel_down_mac = QShortcut(QKeySequence("5"), self.root)
+        mouse_wheel_down_mac.activated.connect(self.handle_zoom)
+        middle_mouse_button = QShortcut(QKeySequence("ButtonPress-2"), self.root)
+        middle_mouse_button.activated.connect(self.start_pan)
+        middle_mouse_button_drag = QShortcut(QKeySequence("B2-Motion"), self.root)
+        middle_mouse_button_drag.activated.connect(self.pan)
+        left_mouse_button = QShortcut(QKeySequence("Button-1"), self.root)
+        left_mouse_button.activated.connect(self.log_click)
+ 
+    def log_click(self, *args, **kwargs):
         """Print the coordinates of the mouse click"""
-        self.logger.debug(
-            str((self.canvas.canvasx(event.x), self.canvas.canvasy(event.y)))
-        )
+        self.logger.debug(f"Mouse click: {args}, {kwargs}")
 
     @property
     def current_file(self) -> str:
@@ -570,8 +346,8 @@ class App:
         return self._current_file
 
     @current_file.setter
-    def current_file(self, value: str):
-        self.root.title(f"PromptFlow - {value}")
+    def current_file(self, value: str):  
+        self.root.setWindowTitle(f"PromptFlow - {value}")
         self._current_file = value
 
     def run_flowchart(self) -> None:
@@ -595,8 +371,9 @@ class App:
         self.logger.info("Serializing flowchart")
         chart_json = json.dumps(self.flowchart.serialize(), indent=4)
         self.logger.info(chart_json)
-        self.output_console.insert(tk.INSERT, chart_json)
-        self.output_console.see(tk.END)
+        # self.output_console.insert(tk.INSERT, chart_json)
+        # self.output_console.see(tk.END)
+        self.output_console.setText(chart_json)
 
     def clear_flowchart(self):
         """Clear the flowchart."""
@@ -634,7 +411,8 @@ class App:
     def run(self):
         """Run the app."""
         self.logger.info("Running app")
-        self.root.mainloop()
+        self.root.show()
+        self.app.exec()
 
     def save_image(self):
         """
@@ -815,23 +593,14 @@ class App:
     def show_loading_popup(self, message: str):
         """Show the loading popup"""
         # Create a new Toplevel widget for the loading popup
-        popup = customtkinter.CTkToplevel(self.root)
-        popup.title("Please wait...")
-
-        # Set the popup to be a transient window of the main application
-        popup.transient(self.root)
-
-        # Center the popup on the screen
-        popup.geometry(
-            "+%d+%d" % (self.root.winfo_rootx() + 50, self.root.winfo_rooty() + 50)
-        )
+        popup = QMainWindow(self.root)
+        popup.setWindowTitle("Please wait...")
+        popup.setGeometry(300, 300, 300, 100)
 
         # Create a label with the loading message
-        label = customtkinter.CTkLabel(popup, text=message)
-        label.pack(padx=10, pady=10)
-
-        # Force Tkinter to draw the popup and process pending events
-        popup.update_idletasks()
+        label = QLabel(popup)
+        label.setText(message)
+        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         return popup
 
@@ -883,3 +652,9 @@ class App:
 
     def arrange_networkx(self, algorithm):
         self.flowchart.arrange_networkx(algorithm)
+
+    def set_dark_mode(self):
+        """
+        Set the theme to dark mode
+        """
+        self.logger.info("Setting theme to dark mode")

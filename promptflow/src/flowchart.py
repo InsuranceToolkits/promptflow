@@ -2,11 +2,9 @@
 This module contains the Flowchart class, which manages the nodes and connectors of a flowchart.
 """
 from __future__ import annotations
-import customtkinter
 import logging
-import tkinter as tk
-import tkinter.scrolledtext
 import threading
+from PyQt6.QtGui import QPixmap
 from queue import Queue
 from typing import Any, Optional
 import networkx as nx
@@ -59,7 +57,8 @@ class Flowchart:
     Holds the nodes and connectors of a flowchart.
     """
 
-    def __init__(self, canvas: tk.Canvas, init_nodes: bool = True):
+    def __init__(self, canvas: QPixmap, init_nodes: bool = True, root: QMainWindow = None):
+        self.root = root
         self.canvas = canvas
         self.graph = nx.DiGraph()
         self.nodes: list[NodeBase] = []
@@ -73,12 +72,12 @@ class Flowchart:
         self.is_running = False
 
         if init_nodes:
-            self.add_node(InitNode(self, 70, 100, "Init"))
-            self.add_node(StartNode(self, 70, 300, "Start"))
+            self.add_node(InitNode(self, 70, 100, "Init", self.root))
+            self.add_node(StartNode(self, 70, 300, "Start", self.root))
 
     @classmethod
     def deserialize(
-        cls, canvas: tk.Canvas, data: dict[str, Any], pan=(0, 0), zoom=1.0
+        cls, canvas: QPixmap, data: dict[str, Any], pan=(0, 0), zoom=1.0
     ) -> Flowchart:
         """
         Deserialize a flowchart from a dict onto a canvas
@@ -113,11 +112,13 @@ class Flowchart:
         self.logger.info("Selected element changed to %s", elem.label if elem else None)
         # deselect previous node
         if self._selected_element:
+            pass
             # configure to have solid border
-            self.canvas.itemconfig(self._selected_element.item, width=2)
+            # self.canvas.itemconfig(self._selected_element.item, width=2)
         # select new node
         if elem:
-            self.canvas.itemconfig(elem.item, width=4)
+            pass
+            # self.canvas.itemconfig(elem.item, width=4)
         self._selected_element = elem
 
     @property

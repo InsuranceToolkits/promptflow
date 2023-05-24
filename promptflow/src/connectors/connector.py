@@ -3,9 +3,9 @@ This module contains the Connector class, which represents a connection
 between two nodes in the flowchart.
 """
 import math
-import tkinter as tk
 import logging
 from typing import Optional, Tuple
+from PyQt6.QtGui import QPixmap
 
 from promptflow.src.nodes.start_node import StartNode
 from promptflow.src.serializable import Serializable
@@ -28,7 +28,7 @@ class Connector(Serializable):
 
     def __init__(
         self,
-        canvas: tk.Canvas,
+        canvas: QPixmap,
         node1: NodeBase,
         node2: NodeBase,
         condition: Optional[TextData | dict] = None,
@@ -87,7 +87,7 @@ class Connector(Serializable):
 
     @classmethod
     def deserialize(
-        cls, canvas: tk.Canvas, node1: NodeBase, node2: NodeBase, condition: TextData
+        cls, canvas: QPixmap, node1: NodeBase, node2: NodeBase, condition: TextData
     ):
         return cls(canvas, node1, node2, condition)
 
@@ -125,7 +125,7 @@ class Connector(Serializable):
             self.canvas.delete(self.condition_label)
             self.canvas.delete(self.filled_box)
 
-    def edit_condition(self, _: tk.Event):
+    def edit_condition(self, _):
         """
         Bring up the text input window to edit the connector's condition.
         """
@@ -133,7 +133,7 @@ class Connector(Serializable):
         self.text_window = CodeInput(self.canvas, self.flowchart, self.condition)
         self.text_window.set_callback(self.update_condition)
 
-    def select(self, _: tk.Event):
+    def select(self, _):
         """
         Select the connector.
         """
@@ -205,7 +205,7 @@ class Connector(Serializable):
         self.canvas.tag_bind(self.condition_label, "<Leave>", self.on_mouseleave)
         return filled_box
 
-    def on_mouseover(self, _: tk.Event):
+    def on_mouseover(self, _):
         """
         Shade the connector's condition label when the mouse hovers over it.
         """
@@ -219,7 +219,7 @@ class Connector(Serializable):
         # make cursor a hand
         self.canvas.configure(cursor="hand2")
 
-    def on_mouseleave(self, _: tk.Event):
+    def on_mouseleave(self, _):
         """
         Restore the connector's condition label when the mouse leaves it.
         """

@@ -3,10 +3,10 @@ Nodes that handle regular expressions and parsing text, usually
 from LLM output (but not always)
 """
 import re
-import customtkinter
 from typing import Any
 from promptflow.src.dialogues.node_options import NodeOptions
 from promptflow.src.nodes.node_base import NodeBase
+from PyQt6.QtWidgets import QTextEdit
 
 
 class RegexNode(NodeBase):
@@ -40,7 +40,7 @@ class RegexNode(NodeBase):
         self.options_popup = None
 
     def run_subclass(
-        self, before_result: Any, state, console: customtkinter.CTkTextbox
+        self, before_result: Any, state, console: QTextEdit
     ) -> str:
         """
         Runs the regex on the state
@@ -92,7 +92,7 @@ class TagNode(NodeBase):
         self.options_popup = None
 
     def run_subclass(
-        self, before_result: Any, state, console: customtkinter.CTkTextbox
+        self, before_result: Any, state, console: QTextEdit
     ) -> str:
         """
         Extracts the text in-between the start and end tags from the state

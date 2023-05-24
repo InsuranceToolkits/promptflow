@@ -4,9 +4,7 @@ Node to run arbitrary Python code.
 
 from typing import Any, TYPE_CHECKING, Optional
 from abc import ABC
-import tkinter as tk
-import customtkinter
-
+from PyQt6.QtWidgets import QTextEdit
 from promptflow.src.nodes.node_base import NodeBase
 from promptflow.src.state import State
 from promptflow.src.text_data import TextData
@@ -63,7 +61,7 @@ class FuncNode(NodeBase, ABC):
         self.text_window: Optional[CodeInput] = None
 
     def run_subclass(
-        self, before_result: Any, state, console: customtkinter.CTkTextbox
+        self, before_result: Any, state, console: QTextEdit
     ) -> str:
         """
         Evaluate the Python function and return the result.
@@ -95,7 +93,7 @@ class FuncNode(NodeBase, ABC):
         node.func = TextData(data["func"]["label"], data["func"]["text"], flowchart)
         return node
 
-    def edit_options(self, _: tk.Event):
+    def edit_options(self, _):
         """Start editing the function."""
         self.text_window = CodeInput(self.canvas, self.flowchart, self.func)
         self.text_window.set_callback(self.save_func)

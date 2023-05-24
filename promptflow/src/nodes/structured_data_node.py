@@ -4,8 +4,8 @@ Nodes for handling structured data.
 from abc import ABC, abstractmethod
 import ast
 import json
-import customtkinter
 from typing import Any
+from PyQt6.QtWidgets import QTextEdit
 import jsonschema
 from promptflow.src.dialogues.text_input import TextInput
 from promptflow.src.nodes.node_base import NodeBase
@@ -32,7 +32,7 @@ class StructuredDataNode(NodeBase, ABC):
         """
 
     def run_subclass(
-        self, before_result: Any, state: State, console: customtkinter.CTkTextbox
+        self, before_result: Any, state: State, console: QTextEdit
     ) -> str:
         validation: str = self.validate(state.result)
         return validation
@@ -85,7 +85,7 @@ class JsonerizerNode(NodeBase):
     """
 
     def run_subclass(
-        self, before_result: Any, state, console: customtkinter.CTkTextbox
+        self, before_result: Any, state, console: QTextEdit
     ) -> str:
         d: dict = ast.literal_eval(state.result)
         return json.dumps(d, indent=4)

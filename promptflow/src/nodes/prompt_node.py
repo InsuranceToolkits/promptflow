@@ -2,8 +2,7 @@
 Holds text which gets formatted with state data
 """
 from typing import TYPE_CHECKING, Any, Optional
-import tkinter as tk
-import customtkinter
+from PyQt6.QtWidgets import QTextEdit
 from promptflow.src.dialogues.text_input import TextInput
 from promptflow.src.nodes.node_base import NodeBase
 from promptflow.src.state import State
@@ -59,7 +58,7 @@ class PromptNode(NodeBase):
         self.bind_mouseover()
 
     def run_subclass(
-        self, before_result: Any, state, console: customtkinter.CTkTextbox
+        self, before_result: Any, state, console: QTextEdit
     ) -> str:
         """
         Formats TextData with state data
@@ -68,7 +67,7 @@ class PromptNode(NodeBase):
         state.result = prompt
         return prompt
 
-    def edit_options(self, _: tk.Event):
+    def edit_options(self, _):
         """
         Create a text input window to edit the prompt.
         """

@@ -1,11 +1,10 @@
 """
 Allow the user to edit application-wide options
 """
-import customtkinter
 from promptflow.src.options import Options
+from PyQt6.QtWidgets import QMainWindow
 
-
-class AppOptions(customtkinter.CTkToplevel):
+class AppOptions(QMainWindow):
     """
     Allow the user to edit application-wide options such as window size
     """

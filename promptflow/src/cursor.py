@@ -1,9 +1,9 @@
 """
 Displays a cursor on the canvas.
 """
-import tkinter as tk
 
 from promptflow.src.themes import monokai
+from PyQt6.QtGui import QPixmap, QPainter
 
 
 class FlowchartCursor:
@@ -11,7 +11,7 @@ class FlowchartCursor:
     width = 2
 
     def __init__(
-        self, canvas: tk.Canvas, center_x: float = 0, center_y: float = 0
+        self, canvas: QPixmap, center_x: float = 0, center_y: float = 0
     ) -> None:
         self.canvas = canvas
         self.center_x = center_x
@@ -22,24 +22,22 @@ class FlowchartCursor:
         """
         Draw a plus sign on the canvas.
         """
-        self.canvas.create_line(
-            self.center_x - self.size_px / 2,
-            self.center_y,
-            self.center_x + self.size_px / 2,
-            self.center_y,
-            width=self.width,
-            fill=monokai.COMMENTS,
-            tags="cursor",
+        painter = QPainter(self.canvas)
+        painter.setPen(int(monokai.COMMENTS.strip("#"), 16))
+        painter.setBrush(int(monokai.COMMENTS.strip("#"), 16))
+        painter.drawLine(
+            int(self.center_x - self.size_px / 2),
+            int(self.center_y),
+            int(self.center_x + self.size_px / 2),
+            int(self.center_y),
         )
-        self.canvas.create_line(
-            self.center_x,
-            self.center_y - self.size_px / 2,
-            self.center_x,
-            self.center_y + self.size_px / 2,
-            width=self.width,
-            fill=monokai.COMMENTS,
-            tags="cursor",
+        painter.drawLine(
+            int(self.center_x),
+            int(self.center_y - self.size_px / 2),
+            int(self.center_x),
+            int(self.center_y + self.size_px / 2),
         )
+
 
     def move_to(self, new_x: float, new_y: float):
         """

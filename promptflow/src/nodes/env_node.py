@@ -2,8 +2,8 @@
 Initialize environmental variables using .env
 """
 import os
-import customtkinter
 from typing import Any, Optional
+from PyQt6.QtWidgets import QTextEdit
 
 from dotenv import load_dotenv
 from promptflow.src.dialogues.multi_file import MultiFileInput
@@ -29,7 +29,7 @@ class EnvNode(NodeBase):
         self.filename = kwargs.get("filename", ".env")
 
     def run_subclass(
-        self, before_result: Any, state, console: customtkinter.CTkTextbox
+        self, before_result: Any, state, console: QTextEdit
     ) -> str:
         load_dotenv(self.filename)
         return state.result
@@ -71,7 +71,7 @@ class ManualEnvNode(NodeBase):
         self.val = kwargs.get("val", "")
 
     def run_subclass(
-        self, before_result: Any, state, console: customtkinter.CTkTextbox
+        self, before_result: Any, state, console: QTextEdit
     ) -> str:
         os.environ[self.key] = self.val
         return state.result

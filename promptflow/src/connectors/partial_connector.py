@@ -1,7 +1,6 @@
 """A connector that is being drawn by the user"""
 import logging
 from typing import TYPE_CHECKING, Optional
-import tkinter as tk
 
 from promptflow.src.nodes.node_base import NodeBase
 from promptflow.src.connectors.connector import Connector
@@ -28,7 +27,7 @@ class PartialConnector:
             self.x, self.y, self.x, self.y, fill="black", width=2, tags="connector"
         )
 
-    def update(self, event: tk.Event):
+    def update(self, event):
         """
         Move the line to the mouse position
         """
@@ -36,7 +35,7 @@ class PartialConnector:
         y = self.canvas.canvasy(event.y)
         self.canvas.coords(self.item, self.x, self.y, x, y)
 
-    def finish(self, event: tk.Event):
+    def finish(self, event):
         """
         Create a connector if the mouse is over a node
         """
@@ -55,7 +54,7 @@ class PartialConnector:
             self.logger.debug("No node found at this position")
         self.canvas.unbind("<Button-1>")
 
-    def delete(self, _: Optional[tk.Event]):
+    def delete(self, event):
         """Delete the line"""
         self.canvas.delete(self.item)
 

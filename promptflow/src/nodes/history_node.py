@@ -2,9 +2,8 @@
 Manages writing history to state
 """
 from abc import ABC
-import tkinter as tk
-import customtkinter
 from typing import TYPE_CHECKING, Any, Optional
+from PyQt6.QtWidgets import QTextEdit
 from promptflow.src.dialogues.history_editor import HistoryEditor, Role
 
 from promptflow.src.dialogues.node_options import NodeOptions
@@ -57,7 +56,7 @@ class HistoryNode(NodeBase):
         self.options_popup: Optional[NodeOptions] = None
 
     def run_subclass(
-        self, before_result: Any, state: State, console: customtkinter.CTkTextbox
+        self, before_result: Any, state: State, console: QTextEdit
     ) -> str:
         """
         Injects date into state
@@ -113,7 +112,7 @@ class ManualHistoryNode(NodeBase):
         self.manual_history = self.history_popup.history
 
     def run_subclass(
-        self, before_result: Any, state, console: customtkinter.CTkTextbox
+        self, before_result: Any, state, console: QTextEdit
     ) -> str:
         state.history.extend(self.manual_history)
         return state.result
@@ -155,7 +154,7 @@ class HistoryWindow(NodeBase, ABC):
         return state.history
 
     def run_subclass(
-        self, before_result: Any, state, console: customtkinter.CTkTextbox
+        self, before_result: Any, state, console: QTextEdit
     ) -> str:
         history_string = "\n".join(
             [

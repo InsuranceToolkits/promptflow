@@ -1,7 +1,6 @@
 import json
-import tkinter as tk
 from enum import Enum
-import customtkinter
+from PyQt6.QtWidgets import QMainWindow
 
 
 class Role(Enum):
@@ -12,7 +11,7 @@ class Role(Enum):
     ASSISTANT = "assistant"
 
 
-class HistoryEditor(customtkinter.CTkToplevel):
+class HistoryEditor(QMainWindow):
     """
     Allows the user to edit the history manually
     """

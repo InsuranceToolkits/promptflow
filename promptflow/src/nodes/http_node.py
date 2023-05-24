@@ -2,8 +2,8 @@
 Interface for http requests
 """
 from enum import Enum
-import customtkinter
 from typing import Any, Callable, Optional
+from PyQt6.QtWidgets import QTextEdit
 import json
 import requests
 import bs4
@@ -70,7 +70,7 @@ class HttpNode(NodeBase):
         self.bind_mouseover()
 
     def run_subclass(
-        self, before_result: Any, state, console: customtkinter.CTkTextbox
+        self, before_result: Any, state, console: QTextEdit
     ) -> str:
         """
         Sends a http request
@@ -155,7 +155,7 @@ class JSONRequestNode(NodeBase):
         self,
         before_result: Any,
         state: State,
-        console: customtkinter.CTkTextbox,
+        console: QTextEdit,
     ) -> str:
         """
         Sends a http request
@@ -227,7 +227,7 @@ class ScrapeNode(NodeBase):
         self,
         before_result: Any,
         state: State,
-        console: customtkinter.CTkTextbox,
+        console: QTextEdit,
     ) -> str:
         """
         Scrapes a page

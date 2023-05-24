@@ -5,11 +5,11 @@ from abc import ABC
 import os
 from typing import Any, Optional
 import wave
-import customtkinter
 import openai
 import elevenlabs
 import numpy as np
 import sounddevice as sd
+from PyQt6.QtWidgets import QMainWindow, QTextEdit
 from promptflow.src.dialogues.node_options import NodeOptions
 from promptflow.src.dialogues.text_input import TextInput
 from promptflow.src.nodes.node_base import NodeBase
@@ -21,7 +21,7 @@ if key:
     elevenlabs.set_api_key(key)
 
 
-class AudioInputInterface(customtkinter.CTkToplevel):
+class AudioInputInterface(QMainWindow):
     """
     Popup window for recording audio
     """
@@ -140,13 +140,13 @@ class AudioInputNode(AudioNode, ABC):
     audio_input_interface: Optional[AudioInputInterface] = None
     data: Optional[list[float]] = None
 
-    def before(self, state: State, console: customtkinter.CTkTextbox) -> Any:
+    def before(self, state: State, console: QTextEdit) -> Any:
         self.audio_input_interface = AudioInputInterface(self.canvas)
         self.canvas.wait_window(self.audio_input_interface)
         self.data = self.audio_input_interface.audio_data
 
     def run_subclass(
-        self, before_result: Any, state, console: customtkinter.CTkTextbox
+        self, before_result: Any, state, console: QTextEdit
     ) -> str:
         return state.result
 
@@ -202,7 +202,7 @@ class WhispersNode(AudioInputNode):
         self.text_window.destroy()
 
     def run_subclass(
-        self, before_result: Any, state, console: customtkinter.CTkTextbox
+        self, before_result: Any, state, console: QTextEdit
     ) -> str:
         super().run_subclass(before_result, state, console)
         transcript = openai.Audio.translate(
@@ -243,7 +243,7 @@ class ElevenLabsNode(AudioOutputNode):
         self.model = kwargs.get("model", self.model)
 
     def run_subclass(
-        self, before_result: Any, state, console: customtkinter.CTkTextbox
+        self, before_result: Any, state, console: QTextEdit
     ) -> str:
         audio = elevenlabs.generate(
             text=state.result, voice="Bella", model="eleven_monolingual_v1"

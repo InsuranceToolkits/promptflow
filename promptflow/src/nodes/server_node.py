@@ -4,7 +4,7 @@ Hosts a simple HTTP server that can be used as Input node.
 import http.server
 from typing import Any, Optional
 
-import customtkinter
+from PyQt6.QtWidgets import QTextEdit
 from promptflow.src.dialogues.node_options import NodeOptions
 
 from promptflow.src.nodes.node_base import NodeBase
@@ -40,7 +40,7 @@ class ServerInputNode(NodeBase):
         self.port = kwargs.get("port", "8000")
 
     def run_subclass(
-        self, before_result: Any, state, console: customtkinter.CTkTextbox
+        self, before_result: Any, state, console: QTextEdit
     ) -> str:
         with http.server.HTTPServer((self.host, int(self.port)), Handler) as httpd:
             httpd.handle_request()

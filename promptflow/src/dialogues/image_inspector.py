@@ -3,11 +3,11 @@ Display image in a dialogue box
 """
 
 from PIL import Image, ImageTk
+from PyQt6.QtWidgets import QMainWindow
 
-import customtkinter
 
 
-class ImageInspector(customtkinter.CTkToplevel):
+class ImageInspector(QMainWindow):
     """
     Displays an image in a dialogue box
     """

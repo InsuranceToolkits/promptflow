@@ -2,7 +2,7 @@
 Nodes for performing tests on the model.
 """
 import code
-import customtkinter
+from PyQt6.QtWidgets import QTextEdit
 from typing import TYPE_CHECKING, Optional, Any
 from promptflow.src.dialogues.node_options import NodeOptions
 from promptflow.src.dialogues.text_input import TextInput
@@ -39,7 +39,7 @@ class AssertNode(NodeBase):
         self.options_popup: Optional[NodeOptions] = None
 
     def run_subclass(
-        self, before_result: Any, state, console: customtkinter.CTkTextbox
+        self, before_result: Any, state, console: QTextEdit
     ) -> str:
         assert eval(self.assertion.text, globals(), state.snapshot), "Assertion failed"
         return state.result
@@ -79,7 +79,7 @@ class LoggingNode(NodeBase):
         self.canvas.tag_bind(self.item, "<Double-Button-1>", self.edit_string)
 
     def run_subclass(
-        self, before_result: Any, state, console: customtkinter.CTkTextbox
+        self, before_result: Any, state, console: QTextEdit
     ) -> str:
         debug_str = self.debug_str.text.format(state=state)
         self.logger.info(debug_str)
@@ -101,7 +101,7 @@ class InterpreterNode(NodeBase):
     """
 
     def run_subclass(
-        self, before_result: Any, state, console: customtkinter.CTkTextbox
+        self, before_result: Any, state, console: QTextEdit
     ) -> str:
         code.interact(local=locals())
         return state.result

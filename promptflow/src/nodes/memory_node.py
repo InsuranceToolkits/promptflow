@@ -6,8 +6,8 @@ from abc import ABC
 import os
 from uuid import uuid4
 from typing import Any, Optional
+from PyQt6.QtWidgets import QTextEdit
 
-import customtkinter
 import pinecone
 from InstructorEmbedding import INSTRUCTOR
 
@@ -38,7 +38,7 @@ class PineconeNode(MemoryNode, ABC):
         return embedding
 
     def run_subclass(
-        self, before_result: Any, state, console: customtkinter.CTkTextbox
+        self, before_result: Any, state, console: QTextEdit
     ) -> str:
         pinecone.init(
             api_key=os.environ["PINECONE_API_KEY"],
@@ -65,7 +65,7 @@ class PineconeInsertNode(PineconeNode):
     """
 
     def run_subclass(
-        self, before_result: Any, state, console: customtkinter.CTkTextbox
+        self, before_result: Any, state, console: QTextEdit
     ) -> str:
         super().run_subclass(before_result, state, console)
         if self.index is None:
@@ -89,7 +89,7 @@ class PineconeQueryNode(PineconeNode):
         self.k = kwargs.get("k", 1)
 
     def run_subclass(
-        self, before_result: Any, state, console: customtkinter.CTkTextbox
+        self, before_result: Any, state, console: QTextEdit
     ) -> str:
         super().run_subclass(before_result, state, console)
         if self.index is None:

@@ -1,19 +1,15 @@
 """
 Simple text input dialogue.
 """
-import tkinter as tk
-import tkinter.ttk as ttk
-import tkinter.filedialog
-import tkinter.messagebox
-import customtkinter
 from typing import Callable, TYPE_CHECKING, Optional
+from PyQt6.QtWidgets import QMainWindow, QTextEdit
 from promptflow.src.text_data import TextData
 
 if TYPE_CHECKING:
     from promptflow.src.flowchart import Flowchart
 
 
-class TextInput(customtkinter.CTkToplevel):
+class TextInput(QMainWindow):
     """
     A basic text editor for editing TextData
     """
@@ -119,14 +115,14 @@ class TextInput(customtkinter.CTkToplevel):
         """
         self.callback = callback
 
-    def on_text_modified(self, _: tk.Event):
+    def on_text_modified(self, _):
         """
         Set the modified flag to True when the text entry is modified.
         """
         self.modified = True
         self.title(self.label_entry.get() + " *")
 
-    def on_label_modified(self, _: tk.Event):
+    def on_label_modified(self, _):
         """
         Set the modified flag to True when the label entry is modified.
         """
@@ -170,7 +166,7 @@ class TextInput(customtkinter.CTkToplevel):
         with open(file_path, "w", encoding="utf-8") as file:
             file.write(self.text_entry.get("1.0", "end"))
 
-    def on_text_data_select(self, _: tk.Event):
+    def on_text_data_select(self, _):
         """
         When a text data is selected from the dropdown, update the text entry
         and label

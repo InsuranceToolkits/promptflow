@@ -8,9 +8,9 @@ from abc import ABC
 from typing import TYPE_CHECKING, Any, List, Optional
 import time
 import hnswlib
+from PyQt6.QtWidgets import QTextEdit
 
 import numpy as np
-import customtkinter
 from InstructorEmbedding import INSTRUCTOR
 
 from promptflow.src.dialogues.multi_file import MultiFileInput
@@ -107,7 +107,7 @@ class EmbeddingInNode(EmbeddingNode):
     """
 
     def run_subclass(
-        self, before_result: Any, state, console: customtkinter.CTkTextbox
+        self, before_result: Any, state, console: QTextEdit
     ) -> str:
         new_id = len(self.collection.content_index)
         self.collection.content_index[new_id] = state.result
@@ -170,7 +170,7 @@ class EmbeddingQueryNode(EmbeddingNode):
         return output
 
     def run_subclass(
-        self, before_result: Any, state, console: customtkinter.CTkTextbox
+        self, before_result: Any, state, console: QTextEdit
     ) -> str:
         results = self.query(
             query_embeddings=self.embeddings(state.result),
@@ -237,7 +237,7 @@ class EmbeddingsIngestNode(EmbeddingNode):
         self.rows = kwargs.get("rows", [])
 
     def run_subclass(
-        self, before_result: Any, state, console: customtkinter.CTkTextbox
+        self, before_result: Any, state, console: QTextEdit
     ) -> str:
         self.collection.index.load_index(self.filename)
         with open(self.label_file, "r") as f:

@@ -1,12 +1,10 @@
 """
 Edit node options
 """
-import tkinter as tk
 from typing import Any, Optional
-import customtkinter
+from PyQt6.QtWidgets import QMainWindow
 
-
-class NodeOptions(customtkinter.CTkToplevel):
+class NodeOptions(QMainWindow):
     """
     Allow quick editing of node option parameters
     """

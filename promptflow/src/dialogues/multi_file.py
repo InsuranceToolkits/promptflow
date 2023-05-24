@@ -2,12 +2,11 @@
 Tkinter class for a multi file input, where the user can 
 specify how many files with a browse field can be specified.
 """
-import tkinter as tk
 from tkinter import filedialog
-import customtkinter
+from PyQt6.QtWidgets import QMainWindow
 
 
-class MultiFileInput(customtkinter.CTkToplevel):
+class MultiFileInput(QMainWindow):
     def __init__(self, master, fields: dict[str, str]):
         super().__init__(master)
         self.title("Add Files")

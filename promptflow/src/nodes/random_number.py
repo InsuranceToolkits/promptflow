@@ -1,5 +1,5 @@
 import random
-import customtkinter
+from PyQt6.QtWidgets import QTextEdit
 from promptflow.src.dialogues.node_options import NodeOptions
 from promptflow.src.nodes.node_base import NodeBase
 from promptflow.src.themes import monokai
@@ -21,7 +21,7 @@ class RandomNode(NodeBase):
     option_popup: Optional[NodeOptions] = None
 
     def run_subclass(
-        self, before_result: Any, state, console: customtkinter.CTkTextbox
+        self, before_result: Any, state, console: QTextEdit
     ) -> str:
         r = random.randint(self.min, self.max)
         return str(r)
